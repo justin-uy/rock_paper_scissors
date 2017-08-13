@@ -5,6 +5,7 @@ use std::io;
 use rand::Rng;
 use regex::Regex;
 
+#[derive(Debug, PartialEq)]
 enum Outcome {
     Win,
     Lose,
@@ -22,7 +23,7 @@ impl ToString for Outcome {
 }
 
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum Choice {
     Rock,
     Paper,
@@ -104,7 +105,7 @@ impl Player {
         }
     }
 
-    fn get_choice(&mut self) {
+    fn request_choice(&mut self) {
         if !self.is_human {
             return;
         }
@@ -112,9 +113,7 @@ impl Player {
         println!("Make a choice:");
         let mut choice_string = String::new();
 
-        io::stdin().read_line(&mut choice_string).expect(
-            "Failed to readline",
-        );
+        io::stdin().read_line(&mut choice_string).expect("Failed to readline");
 
         match Choice::parse(choice_string) {
             Ok(c) => {
@@ -122,7 +121,7 @@ impl Player {
             }
             Err(e) => {
                 println!("{}", e);
-                self.get_choice()
+                self.request_choice()
             }
         }
     }
@@ -132,9 +131,7 @@ impl Player {
             return Err("Both players must have made a choice".to_string());
         }
 
-        Ok(self.choice.unwrap().outcome_against(
-            &opponent.choice.unwrap(),
-        ))
+        Ok(self.choice.unwrap().outcome_against(&opponent.choice.unwrap()))
     }
 }
 
@@ -143,13 +140,94 @@ fn main() {
     let mut player = Player::new(true);
     let computer = Player::new(false);
 
-    player.get_choice();
+    player.request_choice();
 
     println!("Your choice: {}", player.choice.unwrap().to_string());
-    println!(
-        "Computer's choice: {}",
-        computer.choice.unwrap().to_string()
-    );
+    println!("Computer's choice: {}",
+             computer.choice.unwrap().to_string());
 
     println!("{}!", player.play(&computer).unwrap().to_string());
+}
+
+
+#[cfg(test)]
+mod tests {
+    use Player;
+    use Outcome;
+    use Choice;
+
+
+    #[test]
+    fn test_outcome_to_string() {
+        assert_eq!(Outcome::Win.to_string(), "Win");
+        assert_eq!(Outcome::Lose.to_string(), "Lose");
+        assert_eq!(Outcome::Draw.to_string(), "Draw");
+    }
+
+    #[test]
+    fn test_choice_to_string() {
+        assert_eq!(Choice::Rock.to_string(), "rock");
+        assert_eq!(Choice::Paper.to_string(), "paper");
+        assert_eq!(Choice::Scissors.to_string(), "scissors");
+    }
+
+    #[test]
+    fn test_choice_parse() {
+
+        // normal cases
+        assert_eq!(Choice::parse(String::from("rock")).unwrap(), Choice::Rock);
+        assert_eq!(Choice::parse(String::from("paper")).unwrap(), Choice::Paper);
+        assert_eq!(Choice::parse(String::from("scissors")).unwrap(),
+                   Choice::Scissors);
+
+        // cases with excess characters
+        assert_eq!(Choice::parse(String::from("RockKK")).unwrap(), Choice::Rock);
+        assert_eq!(Choice::parse(String::from("paperzzzz")).unwrap(),
+                   Choice::Paper);
+        assert_eq!(Choice::parse(String::from("12341234scissorsacdkakd")).unwrap(),
+                   Choice::Scissors);
+
+        // should use first match
+        assert_eq!(Choice::parse(String::from("RockPaperScissors")).unwrap(),
+                   Choice::Rock);
+    }
+
+    #[test]
+    fn test_non_human_characters_should_have_some_choice() {
+        let human = Player::new(true);
+        assert_eq!(human.choice, None);
+
+        let non_human = Player::new(false);
+        assert_eq!(non_human.choice.is_some(), true);
+    }
+
+    #[test]
+    fn test_players_must_have_choices_to_play() {
+        let mut p1 = Player::new(true);
+        let mut p2 = Player::new(true);
+        assert_eq!(p1.choice, None);
+        assert_eq!(p2.choice, None);
+        assert_eq!(p1.play(&p2).is_err(), true);
+
+        p1.choice = Some(Choice::Rock);
+        assert_eq!(p1.play(&p2).is_err(), true);
+
+        p2.choice = Some(Choice::Rock);
+        assert_eq!(p1.play(&p2).is_ok(), true);
+    }
+
+    #[test]
+    fn test_outcome_against() {
+        assert_eq!(Choice::Rock.outcome_against(&Choice::Rock), Outcome::Draw);
+        assert_eq!(Choice::Rock.outcome_against(&Choice::Paper), Outcome::Lose);
+        assert_eq!(Choice::Rock.outcome_against(&Choice::Scissors),
+                   Outcome::Win);
+        assert_eq!(Choice::Paper.outcome_against(&Choice::Scissors),
+                   Outcome::Lose);
+        assert_eq!(Choice::Paper.outcome_against(&Choice::Rock), Outcome::Win);
+        assert_eq!(Choice::Scissors.outcome_against(&Choice::Rock),
+                   Outcome::Lose);
+        assert_eq!(Choice::Scissors.outcome_against(&Choice::Paper),
+                   Outcome::Win);
+    }
 }

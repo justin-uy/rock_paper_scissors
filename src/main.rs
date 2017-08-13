@@ -100,7 +100,7 @@ impl Player {
 
         Player {
             choice: choice,
-            is_human: is_human
+            is_human: is_human,
         }
     }
 
@@ -112,13 +112,14 @@ impl Player {
         println!("Make a choice:");
         let mut choice_string = String::new();
 
-        io::stdin().read_line(&mut choice_string)
-            .expect("Failed to readline");
+        io::stdin().read_line(&mut choice_string).expect(
+            "Failed to readline",
+        );
 
         match Choice::parse(choice_string) {
             Ok(c) => {
                 self.choice = Some(c);
-            },
+            }
             Err(e) => {
                 println!("{}", e);
                 self.get_choice()
@@ -131,7 +132,9 @@ impl Player {
             return Err("Both players must have made a choice".to_string());
         }
 
-        Ok(self.choice.unwrap().outcome_against(&opponent.choice.unwrap()))
+        Ok(self.choice.unwrap().outcome_against(
+            &opponent.choice.unwrap(),
+        ))
     }
 }
 
@@ -143,7 +146,10 @@ fn main() {
     player.get_choice();
 
     println!("Your choice: {}", player.choice.unwrap().to_string());
-    println!("Computer's choice: {}", computer.choice.unwrap().to_string());
+    println!(
+        "Computer's choice: {}",
+        computer.choice.unwrap().to_string()
+    );
 
     println!("{}!", player.play(&computer).unwrap().to_string());
 }

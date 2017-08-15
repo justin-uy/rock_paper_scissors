@@ -50,9 +50,9 @@ impl Choice {
         }
     }
 
-    fn parse(s: String) -> Result<Self, String> {
+    fn parse(s: &str) -> Result<Self, String> {
         let trimmed = s.trim();
-        let re = Regex::new(r"(?i)(rock|paper|scissors)").unwrap();
+        let re = Regex::new(r"(?i)(rock|paper|scissors)").expect("this must be a valid regex");
         let parsed = match re.captures(trimmed) {
             None => String::from(""),
             Some(captures) => String::from(&captures[0]).to_lowercase(),
@@ -115,7 +115,7 @@ impl Player {
 
         io::stdin().read_line(&mut choice_string).expect("Failed to readline");
 
-        match Choice::parse(choice_string) {
+        match Choice::parse(choice_string.as_ref()) {
             Ok(c) => {
                 self.choice = Some(c);
             }
@@ -127,11 +127,11 @@ impl Player {
     }
 
     fn play(&self, opponent: &Self) -> Result<Outcome, String> {
-        if self.choice.is_none() || opponent.choice.is_none() {
-            return Err("Both players must have made a choice".to_string());
-        }
+        match (self.choice, opponent.choice) {
+            (Some(c1), Some(c2)) => Ok(c1.outcome_against(&c2)),
+            _ => Err("Both players must have made a choice".to_string()),
 
-        Ok(self.choice.unwrap().outcome_against(&opponent.choice.unwrap()))
+        }
     }
 }
 
